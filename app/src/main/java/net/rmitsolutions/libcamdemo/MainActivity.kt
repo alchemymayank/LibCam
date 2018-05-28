@@ -12,6 +12,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import net.rmitsolutions.libcam.Constants.CROP_PHOTO
 import net.rmitsolutions.libcam.Constants.SELECT_PHOTO
 import net.rmitsolutions.libcam.Constants.TAKE_PHOTO
+import net.rmitsolutions.libcam.Constants.globalBitmapUri
 import net.rmitsolutions.libcam.Constants.logD
 import net.rmitsolutions.libcam.LibCam
 import net.rmitsolutions.libcam.LibPermissions
@@ -20,8 +21,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private lateinit var libPermissions: LibPermissions
-    private lateinit var libCam : LibCam
-    private lateinit var bitmap: Bitmap
+    private lateinit var libCam: LibCam
+    private var bitmap: Bitmap? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,14 +38,13 @@ class MainActivity : AppCompatActivity() {
         libCam = LibCam(this, libPermissions, 100)
     }
 
-    fun openCamera(view: View){
+    fun openCamera(view: View) {
         showPictureDialog()
     }
 
-    fun cropImage(view: View){
-        if (bitmap!=null){
-            val uri = libCam.getBitmapUri(this,bitmap)
-            libCam.cropImage(uri!!)
+    fun cropImage(view: View) {
+        if (bitmap != null) {
+            libCam.cropImage(globalBitmapUri!!)
         }
     }
 
@@ -72,28 +72,23 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        when(requestCode){
-            TAKE_PHOTO ->{
-                if (data !=null){
-                    bitmap = libCam.resultPhoto(requestCode, resultCode, data)!!
-                    Glide.with(this).load(bitmap).into(imageViewCamera)
-                }
+        when (requestCode) {
+            TAKE_PHOTO -> {
+                bitmap = libCam.loadBitmapFromUri(globalBitmapUri!!)
+                Glide.with(this).load(bitmap).into(imageViewCamera)
             }
-            SELECT_PHOTO ->{
-                if (data!=null){
+            SELECT_PHOTO -> {
+                if (data != null) {
                     bitmap = libCam.resultPhoto(requestCode, resultCode, data)!!
                     Glide.with(this).load(bitmap).into(imageViewCamera)
-                }else{
-                    logD("Data is null")
                 }
 
             }
-            CROP_PHOTO ->{
-                if (data!=null){
-                    val uri= libCam.cropImageActivityResult(requestCode, resultCode, data)
-                    imageViewCamera.setImageURI(uri)
-                }else {
-                    logD("Data is null")
+            CROP_PHOTO -> {
+                if (data != null) {
+                    val uri = libCam.cropImageActivityResult(requestCode, resultCode, data)
+                    bitmap = libCam.loadBitmapFromUri(uri!!)
+                    imageViewCamera.setImageBitmap(bitmap)
                 }
             }
         }

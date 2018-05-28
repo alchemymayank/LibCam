@@ -1,6 +1,7 @@
 package net.rmitsolutions.libcam
 
 import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 
 object Constants {
@@ -27,6 +28,8 @@ object Constants {
 
     var mCurrentPhotoPath : String = ""
     var mCurrentImageName : String = ""
+
+    var globalBitmapUri : Uri? = null
 
 
     // Bitmap Format

@@ -14,6 +14,7 @@ import net.rmitsolutions.libcam.Constants.DEFAULT_DIRECTORY_NAME
 import net.rmitsolutions.libcam.Constants.DEFAULT_FILE_PREFIX
 import net.rmitsolutions.libcam.Constants.SELECT_PHOTO
 import net.rmitsolutions.libcam.Constants.TAKE_PHOTO
+import net.rmitsolutions.libcam.Constants.globalBitmapUri
 import net.rmitsolutions.libcam.Constants.logD
 import net.rmitsolutions.libcam.Constants.logE
 import net.rmitsolutions.libcam.Constants.mCurrentPhotoPath
@@ -115,12 +116,12 @@ class ActionCamera {
     private fun getUriFilePath(file: File): Uri? {
         return if (android.os.Build.VERSION.SDK_INT >= 24) {
             logD("SDK >= 24")
-            FileProvider.getUriForFile(activity, activity.packageName+ ".provider", file)
-
+            globalBitmapUri =FileProvider.getUriForFile(activity, activity.packageName+ ".provider", file)
+            globalBitmapUri
         }else {
             logD("SDK < 24")
-            logD(file.absolutePath)
-            Uri.fromFile(file)
+            globalBitmapUri = Uri.fromFile(file)
+            globalBitmapUri
         }
     }
 
@@ -131,9 +132,9 @@ class ActionCamera {
             directory.mkdirs()
         }
         val image = File.createTempFile(
-                fileName, /* prefix */
-                ".jpg", /* suffix */
-                directory      /* directory */
+                fileName,       /* prefix */
+                ".jpg",   /* suffix */
+                directory        /* directory */
         )
         mCurrentPhotoPath = image.absolutePath
         return image
@@ -165,9 +166,9 @@ class ActionCamera {
 
     fun resultPhoto(data : Intent): Bitmap? {
         return if (data!= null){
-            val contentUri = data.data
+            globalBitmapUri = data.data
             try {
-                MediaStore.Images.Media.getBitmap(activity.contentResolver, contentUri)
+                MediaStore.Images.Media.getBitmap(activity.contentResolver, globalBitmapUri)
             }catch (e: Exception){
                 logE("Exception : $e")
                 null
@@ -179,9 +180,9 @@ class ActionCamera {
 
     fun resultPhoto(data: Intent, rotate: Int): Bitmap? {
         return if (data!= null){
-            val contentUri = data.data
+            globalBitmapUri = data.data
             try {
-                return pictureUtils.rotateImage(MediaStore.Images.Media.getBitmap(activity.contentResolver, contentUri), rotate.toFloat())
+                return pictureUtils.rotateImage(MediaStore.Images.Media.getBitmap(activity.contentResolver, globalBitmapUri), rotate.toFloat())
             }catch (e: Exception){
                 logE("Exception : $e")
                 null
@@ -232,8 +233,7 @@ class ActionCamera {
         if (requestCode== CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE){
             val result = CropImage.getActivityResult(data)
             if (resultCode == Activity.RESULT_OK){
-                val uri = result.uri
-                return uri
+                return result.uri
             }else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE){
                 val error = result.error
                 logD("Error : $error")
@@ -249,9 +249,7 @@ class ActionCamera {
             val options = BitmapFactory.Options()
             options.inJustDecodeBounds = true
             BitmapFactory.decodeFile(bitmapFile.absolutePath, options)
-
             options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
-
             options.inJustDecodeBounds = false
             BitmapFactory.decodeFile(bitmapFile.absolutePath, options)
         }else{
@@ -265,11 +263,9 @@ class ActionCamera {
         val height = options.outHeight
         val width = options.outWidth
         var inSampleSize = 1
-
         if (height > reqHeight || width > reqWidth) {
             val halfHeight = height / 2
             val halfWidth = width / 2
-
             // Calculate the largest inSampleSize value that is a power of 2 and keeps both
             // height and width larger than the requested height and width.
             while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
